@@ -1,0 +1,27 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- CreateTable
+CREATE TABLE [dbo].[ShortUrl] (
+    [id] INT NOT NULL IDENTITY(1,1),
+    [originalUrl] NVARCHAR(1000) NOT NULL,
+    [shortId] NVARCHAR(1000) NOT NULL,
+    [createAt] DATETIME2 NOT NULL CONSTRAINT [ShortUrl_createAt_df] DEFAULT CURRENT_TIMESTAMP,
+    [clickCount] INT NOT NULL CONSTRAINT [ShortUrl_clickCount_df] DEFAULT 0,
+    CONSTRAINT [ShortUrl_pkey] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [ShortUrl_shortId_key] UNIQUE NONCLUSTERED ([shortId])
+);
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH
