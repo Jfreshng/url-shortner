@@ -1,6 +1,6 @@
 import { error } from "node:console";
 import { prismaInstance } from "../../prisma/prismaClient.js";
-import { createUrl, urlInterface } from "../../types/UrlTypes.js";
+import { createUrl, shortUrlType, updateUrlType, urlInterface } from "../../types/UrlTypes.js";
 import { nanoid } from "nanoid";
 
 // create a new url link
@@ -9,10 +9,9 @@ export const shortenSaveUrl = async (payload: createUrl) => {
   try {
     if (!payload) throw new Error("Payload cannot be null or empty");
 
-    const _payload: createUrl = {
+    const _payload = {
       ...payload,
-      // shortId: await nanoid(8).toString(),
-      shortId: 'Rando'
+      shortId: await nanoid(8).toString(),
     }
 
     console.log(_payload)
@@ -39,15 +38,17 @@ export const getAllUrl = async () => {
 }
 
 // get one
-export const getUrlById = async (id: number) => {
+export const getUrlById = async (id: string) => {
   try {
     if (!id) {
-    throw new Error("id cannot be null");
-  }
-  const url = await prismaInstance.shortUrl.findUniqueOrThrow({
-    where: {id}
-  })
-  return url;
+      throw new Error("id cannot be null");
+    }
+    const _id = Number(id);
+    if (typeof(_id) !== 'number') throw `Invalid Id ${id}`;
+    const url = await prismaInstance.shortUrl.findUniqueOrThrow({
+      where: {id: _id}
+    })
+    return url;
   } catch (error) {
     throw error
   }
@@ -82,5 +83,61 @@ export const deleteUrlById = async (id: number) => {
 }
 
 // update one
+export const updateUrl = async (payload: updateUrlType) => {
+  try {
+    if (!payload) {
+      throw new Error("Payload cannot be null or empty");
+    }
+
+    const _id = Number(payload.id);
+    if (typeof(_id) !== 'number') throw new Error("Invalid url id");
+
+    // get record
+    const urlRecord = await prismaInstance.shortUrl.findFirst({
+      where: {
+        id: _id
+      }
+    })
+
+    if (!urlRecord) throw new Error("Record not found")
+    
+    // update actual record
+    const newData: shortUrlType = {
+      ...urlRecord,
+      originalUrl: payload.originalUrl
+    }
+
+    // save new record with updated data
+    const response = await prismaInstance.shortUrl.update({
+      where: {
+        id: payload.id
+      },
+      data: newData
+    })
+
+    return response
+  } catch (error) {
+    throw (error);
+  }
+}
 
 // get by some other condition
+
+// get by shortUrlId
+export const getUrlByShortUrl = async (shortId: string) => {
+  try {
+      if (!shortId) throw new Error("ShortUrlId cannot be null");
+
+    const response = await prismaInstance.shortUrl.findFirst({
+      where: {
+        shortId
+      }
+    })
+
+    if (!response) throw new Error(`Record with ${shortId} not found`)
+    
+    return response;
+  } catch (error) {
+    throw error;
+  }
+}

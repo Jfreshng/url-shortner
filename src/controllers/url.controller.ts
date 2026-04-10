@@ -1,7 +1,7 @@
 console.log("URL Controller LOADED");
 import { Request, Response } from "express";
-import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById } from "../services/url.service.js";
-import { urlInterface } from "../../types/UrlTypes.js";
+import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById, updateUrl, getUrlByShortUrl } from "../services/url.service.js";
+import { updateUrlType, urlInterface } from "../../types/UrlTypes.js";
 import { responseTypeInterface } from "../../types/status.js";
 
 export const shortenUrController = async (req: Request, res: Response) => {
@@ -17,7 +17,7 @@ export const shortenUrController = async (req: Request, res: Response) => {
     })
 
     res.status(201).send({
-      status: "Failed",
+      status: "Success",
       message: "Record Created successfully",
       data: response
     })
@@ -30,7 +30,7 @@ export const shortenUrController = async (req: Request, res: Response) => {
   }
 }
 
-export const getUrlByIdCont = async (req: Request<{id: number }>, res: Response) => {
+export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response) => {
   try {
     const _id = req.params.id;
 
@@ -69,6 +69,49 @@ export const getUrls = async (req: Request, res: Response) => {
     res.status(400).send({
       status: "Failed",
       message: `An Error occurred, ${error}`
+    })
+  }
+}
+
+export const getUrlRecordByShortId = async (req: Request<{ shortId: string }>, res: Response) => {
+  try {
+    const _shortId = req.params.shortId;
+    const _res = await getUrlByShortUrl(_shortId);
+
+    if (!_res) throw "Error"
+    
+    res.status(200).send({
+      status: "Success",
+      message: "Record Retrieved successfully",
+      data: _res
+    })
+
+  } catch (error) {
+    res.status(400).send({
+      status: "Failed",
+      message: "Some error occurred",
+      error
+    })
+  }
+}
+
+export const updateUrlRecord = async (req: Request, res: Response) => {
+  try {
+    const payload: updateUrlType = req.body
+    if (!payload) throw new Error("Payload cannot be null")
+    const response = await updateUrl(payload);
+    if (response) {
+      return res.status(200).send({
+        status: "Success",
+        message: "Record Updated Successfully",
+        data: response
+      })
+    }
+  } catch (error) {
+    res.status(400).send({
+      status: "Failed",
+      message: "Some errors occurred",
+      error
     })
   }
 }

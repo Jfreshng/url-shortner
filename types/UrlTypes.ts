@@ -8,5 +8,13 @@ export interface urlInterface extends createUrl{
 
 export interface createUrl {
   originalUrl: string;
+  // shortId: string
+}
+
+export interface updateUrlType extends createUrl {
+  id: number
+}
+
+export interface shortUrlType extends urlInterface, createUrl, updateUrlType {
   shortId: string
 }
