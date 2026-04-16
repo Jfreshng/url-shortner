@@ -102,8 +102,11 @@ export const updateUrl = async (payload: updateUrlType) => {
     if (!urlRecord) throw new Error("Record not found")
     
     // update actual record
-    const newData: shortUrlType = {
-      ...urlRecord,
+    const newData = {
+      // ...urlRecord,
+      shortId: urlRecord.shortId,
+      createdAt: urlRecord.createdAt,
+      clickCount: urlRecord.clickCount,
       originalUrl: payload.originalUrl
     }
 
