@@ -123,29 +123,35 @@ export const updateUrlRecord = async (req: Request, res: Response<ApiResponse<ur
   }
 }
 
-export const deleteUrlByIdCont = async (req: Request<{ id: number}>, res: Response) => {
+export const deleteUrlByIdCont = async (
+  req: Request<{ id: string }>,
+  res: Response
+) => {
   try {
-    const _id = req.params.id;
-    if (!_id)  return res.status(400).send({
-      status: "Failed",
-      message: "Id cannot be null",
-    })
 
-    const deleteStatus = await deleteUrlById(_id);
-    if (deleteStatus) res.status(200).send({
+    const _id = Number(req.params.id);
+
+    if (Number.isNaN(_id)) {
+      return res.status(400).send({
+        status: "Failed",
+        message: "Invalid id",
+      });
+    }
+
+    await deleteUrlById(_id);
+
+    return res.status(200).send({
       status: "Success",
-      message: "Record deleted successfully"
-    })
+      message: "Record deleted successfully",
+    });
+
+  } catch (error: any) {
     return res.status(400).send({
       status: "Failed",
-      message: "Some error occurred"
-    })
-  } catch (error) {
-    return res.status(400).send({
-      message: error
-    })
+      message: error.message || "Some error occurred",
+    });
   }
-}
+};
 
 export const getRecordsCountsGTE = async (
   req: Request<{ count: number }>, 

@@ -55,22 +55,20 @@ export const getUrlById = async (id: string) => {
 // delete service
 export const deleteUrlById = async (id: number) => {
   try {
-    if (!id) throw new Error("Id cannot be null, please enter a valid id");
-    if (!Number.isInteger(id)) throw new Error("Invalid id");
+    if (Number.isNaN(id)) {
+      throw new Error("Invalid id");
+    }
 
     const deletedRecord = await prismaInstance.shortUrl.delete({
-      where: {
-        id
-      }
-    })
+      where: { id }
+    });
 
-    if (!deletedRecord) throw new Error("Error couldn't delete");
-    return true
+    return deletedRecord;
 
   } catch (error) {
-    throw error
+    throw error;
   }
-}
+};
 
 export const updateUrl = async (payload: updateUrlType) => {
 
