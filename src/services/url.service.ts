@@ -1,6 +1,5 @@
-import { error } from "node:console";
 import { prismaInstance } from "../../prisma/prismaClient.js";
-import { createUrl, shortUrlType, updateUrlType, urlInterface } from "../../types/UrlTypes.js";
+import { createUrl, updateUrlType } from "../../types/UrlTypes.js";
 import { nanoid } from "nanoid";
 
 // create a new url link
@@ -44,7 +43,7 @@ export const getUrlById = async (id: string) => {
       throw new Error("id cannot be null");
     }
     const _id = Number(id);
-    if (typeof(_id) !== 'number') throw `Invalid Id ${id}`;
+    if (Number.isNaN(_id)) throw `Invalid Id ${id}`;
     const url = await prismaInstance.shortUrl.findUniqueOrThrow({
       where: {id: _id}
     })
@@ -58,15 +57,7 @@ export const getUrlById = async (id: string) => {
 export const deleteUrlById = async (id: number) => {
   try {
     if (!id) throw new Error("Id cannot be null, please enter a valid id");
-    
-    // find record by id
-    const record = prismaInstance.shortUrl.findFirst({
-      where: {
-        id
-      }
-    })
-
-    if (!record) throw new Error("Record no found");
+    if (!Number.isInteger(id)) throw new Error("Invalid id");
 
     const deletedRecord = await prismaInstance.shortUrl.delete({
       where: {
@@ -82,54 +73,51 @@ export const deleteUrlById = async (id: number) => {
   }
 }
 
-// update one
 export const updateUrl = async (payload: updateUrlType) => {
-  try {
-    if (!payload) {
-      throw new Error("Payload cannot be null or empty");
-    }
 
-    const _id = Number(payload.id);
-    if (typeof(_id) !== 'number') throw new Error("Invalid url id");
+  if (!payload) {
+    throw new Error("Payload cannot be null or empty");
+  }
 
-    // get record
-    const urlRecord = await prismaInstance.shortUrl.findFirst({
-      where: {
-        id: _id
-      }
-    })
+  const _id = Number(payload.id);
 
-    if (!urlRecord) throw new Error("Record not found")
-    
-    // update actual record
-    const newData = {
-      // ...urlRecord,
-      shortId: urlRecord.shortId,
-      createdAt: urlRecord.createdAt,
-      clickCount: urlRecord.clickCount,
+  if (Number.isNaN(_id)) {
+    throw new Error("Invalid url id");
+  }
+
+  const response = await prismaInstance.shortUrl.update({
+    where: {
+      id: _id
+    },
+    data: {
       originalUrl: payload.originalUrl
     }
+  });
 
-    // save new record with updated data
-    const response = await prismaInstance.shortUrl.update({
-      where: {
-        id: payload.id
-      },
-      data: newData
-    })
-
-    return response
-  } catch (error) {
-    throw (error);
-  }
+  return response;
 }
 
-// get by some other condition
+// get by some other condition 
+// get by click count -> returns records where clickCount is greater than or equal to the count passed as argument
+export const getByClickCount = async (count: number) => {
+  try {
+    const result = await prismaInstance.shortUrl.findMany({
+      where: {
+        clickCount: {
+          gte: count
+        }
+      }
+    })
+    return result
+  } catch (error) {
+    throw new Error(`An error occurred ${error}`);
+  }
+}
 
 // get by shortUrlId
 export const getUrlByShortUrl = async (shortId: string) => {
   try {
-      if (!shortId) throw new Error("ShortUrlId cannot be null");
+    if (!shortId) throw new Error("ShortUrlId cannot be null");
 
     const response = await prismaInstance.shortUrl.findFirst({
       where: {

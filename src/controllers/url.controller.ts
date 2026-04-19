@@ -1,10 +1,11 @@
 console.log("URL Controller LOADED");
 import { Request, Response } from "express";
-import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById, updateUrl, getUrlByShortUrl } from "../services/url.service.js";
+import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById, updateUrl, getUrlByShortUrl, getByClickCount } from "../services/url.service.js";
 import { updateUrlType, urlInterface } from "../../types/UrlTypes.js";
-import { responseTypeInterface } from "../../types/status.js";
+import { responseTypeInterface, ApiResponse } from "../../types/status.js";
+import { ShortUrl } from "@prisma/client";
 
-export const shortenUrController = async (req: Request, res: Response) => {
+export const shortenUrController = async (req: Request, res: Response<ApiResponse<urlInterface>>) => {
   try {
     const payload = req.body;
     if (!payload) throw new Error("Payload cannot be empty please enter a valid payload");
@@ -13,7 +14,7 @@ export const shortenUrController = async (req: Request, res: Response) => {
 
     if (!response) res.status(400).send({
       status: "Failed",
-      Message: `Some error occurred ${response}`
+      message: `Some error occurred ${response}`
     })
 
     res.status(201).send({
@@ -30,15 +31,20 @@ export const shortenUrController = async (req: Request, res: Response) => {
   }
 }
 
-export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response) => {
+export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response<ApiResponse<urlInterface>>) => {
   try {
     const _id = req.params.id;
 
     if (!_id) throw new Error("Please provide a valid id");
 
     const response = await getUrlById(_id);
-    if (response) return res.status(200).send(response);
+    if (response) return res.status(200).send({
+      status: "Success",
+      message: "Record Retrieved successfully",
+      data: response
+    });
     return res.status(404).send({
+      status: "Failed",
       message: "Not found",
     });
   } catch (error) {
@@ -49,20 +55,21 @@ export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response)
   }
 }
 
-export const getUrls = async (req: Request, res: Response) => {
+export const getUrls = async (req: Request, res: Response<ApiResponse<urlInterface [] | null>>) => {
   console.log("currently here");
   try {
     const response = await getAllUrl();
 
     if (response) {
       return res.status(200).send({
-        message: "Success",
+        status: "Success",
+        message: response.length > 0 ? "Records retrieved successfully" : "No record found",
         data: response
       })
     }
     return res.status(400).send({
-      Status: "Failed",
-      Message: "No Data found",
+      status: "Failed",
+      message: "No Data found",
       data: null
     })
   } catch (error) {
@@ -73,7 +80,7 @@ export const getUrls = async (req: Request, res: Response) => {
   }
 }
 
-export const getUrlRecordByShortId = async (req: Request<{ shortId: string }>, res: Response) => {
+export const getUrlRecordByShortId = async (req: Request<{ shortId: string }>, res: Response<ApiResponse<urlInterface | null>>) => {
   try {
     const _shortId = req.params.shortId;
     const _res = await getUrlByShortUrl(_shortId);
@@ -86,33 +93,36 @@ export const getUrlRecordByShortId = async (req: Request<{ shortId: string }>, r
       data: _res
     })
 
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).send({
       status: "Failed",
-      message: "Some error occurred",
-      error
+      message: error.message || "Some errors occurred"
+      // errorMessage: error
     })
   }
 }
 
-export const updateUrlRecord = async (req: Request, res: Response) => {
+export const updateUrlRecord = async (req: Request, res: Response<ApiResponse<urlInterface>>) => {
   try {
-    const payload: updateUrlType = req.body
-    if (!payload) throw new Error("Payload cannot be null")
-    const response = await updateUrl(payload);
-    if (response) {
-      return res.status(200).send({
-        status: "Success",
-        message: "Record Updated Successfully",
-        data: response
-      })
+    const payload: updateUrlType = req.body;
+
+    if (!payload) {
+      throw new Error("Payload cannot be null");
     }
-  } catch (error) {
-    res.status(400).send({
+
+    const response = await updateUrl(payload);
+
+    return res.status(200).json({
+      status: "Success",
+      message: "Record Updated Successfully",
+      data: response
+    });
+
+  } catch (error: any) {
+    return res.status(400).send({
       status: "Failed",
-      message: "Some errors occurred",
-      error
-    })
+      message: error.message || "Some errors occurred"
+    });
   }
 }
 
@@ -137,5 +147,33 @@ export const deleteUrlByIdCont = async (req: Request<{ id: number}>, res: Respon
     return res.status(400).send({
       message: error
     })
+  }
+}
+
+export const getRecordsCountsGTE = async (
+  req: Request<{ count: number }>, 
+  res: Response<ApiResponse<urlInterface[] | null>>
+) => {
+  try {
+    console.log("Omo weetin dey sup")
+    const { count } = req.params;
+
+    console.log({parameter: count});
+
+    if (Number.isNaN(count)) throw new Error("Invalid Parameter, Count must be a valid integer");
+    const _count = Number(count);
+
+    const result = await getByClickCount(_count);
+
+    res.status(200).json({
+      status: "Success",
+      message: "Data retrieved successfully",
+      data: result,
+    })
+  } catch (error) {
+    return res.status(400).json({
+      status: "Failed",
+      message: `An error occurred ${error}`
+    });
   }
 }
