@@ -1,5 +1,5 @@
 import { prismaInstance } from "../../prisma/prismaClient.js";
-import { createUrl, updateUrlType } from "../../types/UrlTypes.js";
+import { createUrl, updateUrlType, updateUrlByShortIdType, customClick } from "../../types/UrlTypes.js";
 import { nanoid } from "nanoid";
 
 // create a new url link
@@ -13,7 +13,6 @@ export const shortenSaveUrl = async (payload: createUrl) => {
       shortId: await nanoid(8).toString(),
     }
 
-    console.log(_payload)
     // do validation if any is required
     const response = await prismaInstance.shortUrl.create({
       data: _payload
@@ -97,6 +96,22 @@ export const updateUrl = async (payload: updateUrlType) => {
   return response;
 }
 
+export const updateByShortUrlId = async (payload: updateUrlByShortIdType) => {
+  try {
+    const { shortId } = payload
+    const updateResult = await prismaInstance.shortUrl.update({
+      where: {
+        shortId
+      },
+      data: {
+        originalUrl: payload.originalUrl
+      }
+    })
+  } catch (error) {
+    throw new Error(`An error occurred ${error}`);
+  }
+}
+
 // get by some other condition 
 // get by click count -> returns records where clickCount is greater than or equal to the count passed as argument
 export const getByClickCount = async (count: number) => {
@@ -130,5 +145,52 @@ export const getUrlByShortUrl = async (shortId: string) => {
     return response;
   } catch (error) {
     throw error;
+  }
+}
+
+export const performClickUrl = async (id: string) => {
+  try {
+    const _id = Number(id);
+
+    if (Number.isNaN(_id)) throw new Error(`Invalid Id ${id}`);
+
+    const clickResult = await prismaInstance.shortUrl.update({
+      where: {
+        id: _id
+      },
+      data: {
+        clickCount: {
+          increment: 1
+        }
+      }
+    })
+
+    return clickResult;
+
+  } catch (error) {
+    throw new Error(`An Error occurred ${error}`)
+  }
+}
+
+export const performCustomClick = async (payload: customClick) => {
+  try {
+    const { id, clicks } = payload;
+    const _id = Number(id)
+    const _clicks = Number(clicks)
+    if (Number.isNaN(_id) || Number.isNaN(_clicks)) throw new Error("Invalid attribute in payload");
+    const result = await prismaInstance.shortUrl.update({
+      where: {
+        id: _id
+      },
+      data: {
+        clickCount: {
+          increment: _clicks
+        }
+      }
+    });
+
+    return result;
+  } catch (error) {
+    throw new Error(`An Error occurred ${error}`);
   }
 }

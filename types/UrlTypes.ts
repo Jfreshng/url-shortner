@@ -15,6 +15,15 @@ export interface updateUrlType extends createUrl {
   id: number
 }
 
+export interface updateUrlByShortIdType extends createUrl {
+  shortId: string
+}
+
+export interface customClick {
+  id: number,
+  clicks: number,
+}
+
 export interface shortUrlType extends urlInterface, createUrl, updateUrlType {
   shortId: string
 }

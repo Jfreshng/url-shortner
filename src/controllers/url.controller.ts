@@ -1,9 +1,7 @@
-console.log("URL Controller LOADED");
 import { Request, Response } from "express";
-import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById, updateUrl, getUrlByShortUrl, getByClickCount } from "../services/url.service.js";
-import { updateUrlType, urlInterface } from "../../types/UrlTypes.js";
-import { responseTypeInterface, ApiResponse } from "../../types/status.js";
-import { ShortUrl } from "@prisma/client";
+import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById, updateUrl, getUrlByShortUrl, getByClickCount, performClickUrl, performCustomClick } from "../services/url.service.js";
+import { customClick, updateUrlType, urlInterface } from "../../types/UrlTypes.js";
+import { ApiResponse } from "../../types/status.js";
 
 export const shortenUrController = async (req: Request, res: Response<ApiResponse<urlInterface>>) => {
   try {
@@ -24,7 +22,7 @@ export const shortenUrController = async (req: Request, res: Response<ApiRespons
     })
   } catch (error) {
     // throw error;
-    res.status(400).send({
+    res.status(400).json({
       status: "Failed",
       message: `Some error occurred ${error}`
     })
@@ -56,7 +54,6 @@ export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response<
 }
 
 export const getUrls = async (req: Request, res: Response<ApiResponse<urlInterface [] | null>>) => {
-  console.log("currently here");
   try {
     const response = await getAllUrl();
 
@@ -155,10 +152,7 @@ export const getRecordsCountsGTE = async (
   res: Response<ApiResponse<urlInterface[] | null>>
 ) => {
   try {
-    console.log("Omo weetin dey sup")
     const { count } = req.params;
-
-    console.log({parameter: count});
 
     if (Number.isNaN(count)) throw new Error("Invalid Parameter, Count must be a valid integer");
     const _count = Number(count);
@@ -175,5 +169,58 @@ export const getRecordsCountsGTE = async (
       status: "Failed",
       message: `An error occurred ${error}`
     });
+  }
+}
+
+export const clickUrl = async (req: Request<{ id: string }>, res: Response<ApiResponse<urlInterface | null>>) => {
+  try {
+    const id = req.params.id;
+    // if (!id) throw new Error("Invalid id");
+    if (!id) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Invalid id",
+        data: null
+      });
+    }
+    const result = await performClickUrl(id);
+
+    res.status(200).json({
+      status: "Success",
+      message: "Click Successful",
+      data: result
+    })
+
+  } catch (error: any) {
+    res.status(400).send({
+      status: "Failed",
+      message: "An error occurred",
+      errorMessage: error
+    })
+  }
+}
+
+export const clickUrlCustomTimes = async (req: Request<{}, {}, customClick>, 
+  res: Response<ApiResponse<urlInterface | null>>
+) => {
+  try {
+    const payload = req.body;
+
+    console.log(payload)
+
+    const result = await performCustomClick(payload);
+
+    res.status(200).json({
+      status: "Success",
+      message: "Click Successful",
+      data: result
+    });
+
+  } catch (error: any) {
+    res.status(400).send({
+      status: "Failed",
+      message: "An error occurred",
+      errorMessage: error.message
+    })
   }
 }
