@@ -45,10 +45,10 @@ export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response<
       status: "Failed",
       message: "Not found",
     });
-  } catch (error) {
-    return res.status(500).json({
+  } catch (error: any) {
+    return res.status(error.statusCode || 500).json({
       status: "Failed",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error.message || "Internal Server Error"
     }); 
   }
 }
@@ -91,9 +91,9 @@ export const getUrlRecordByShortId = async (req: Request<{ shortId: string }>, r
     })
 
   } catch (error: any) {
-    res.status(400).send({
+    res.status(error.statusCode || 500).send({
       status: "Failed",
-      message: error.message || "Some errors occurred"
+      message: error.message || "Internal server error"
       // errorMessage: error
     })
   }

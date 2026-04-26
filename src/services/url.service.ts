@@ -1,6 +1,7 @@
 import { prismaInstance } from "../../prisma/prismaClient.js";
 import { createUrl, updateUrlType, updateUrlByShortIdType, customClick } from "../../types/UrlTypes.js";
 import { nanoid } from "nanoid";
+import { Prisma } from "@prisma/client";
 
 // create a new url link
 export const shortenSaveUrl = async (payload: createUrl) => {
@@ -48,7 +49,14 @@ export const getUrlById = async (id: string) => {
     })
     return url;
   } catch (error) {
-    throw error
+    // throw error
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "p2025"){
+        const err: any = new Error("Url record not found");
+        err.statusCode = 404;
+        throw err;
+      }
+    }
   }
 }
 
@@ -138,7 +146,13 @@ export const getUrlByShortUrl = async (shortId: string) => {
       }
     })
 
-    if (!response) throw new Error(`Record with ${shortId} not found`)
+    // if (!response) throw new Error(`Record with shortId '${shortId}' not found`)
+
+    if (!response) {
+      const error: any = new Error(`Record with shortId '${shortId}' not found`)
+      error.statusCode = 404;
+      throw error;
+    }
     
     return response;
   } catch (error) {
