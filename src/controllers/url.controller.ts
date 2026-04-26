@@ -1,232 +1,204 @@
 import { Request, Response } from "express";
-import { shortenSaveUrl, getUrlById, getAllUrl, deleteUrlById, updateUrl, getUrlByShortUrl, getByClickCount, performClickUrl, performCustomClick } from "../services/url.service.js";
+import {
+  shortenSaveUrl,
+  getUrlById,
+  getAllUrl,
+  deleteUrlById,
+  updateUrl,
+  getUrlByShortUrl,
+  getByClickCount,
+  performClickUrl,
+  performCustomClick
+} from "../services/url.service.js";
+
 import { customClick, updateUrlType, urlInterface } from "../../types/UrlTypes.js";
 import { ApiResponse } from "../../types/status.js";
-
-export const shortenUrController = async (req: Request, res: Response<ApiResponse<urlInterface>>) => {
-  try {
-    const payload = req.body;
-    if (!payload) throw new Error("Payload cannot be empty please enter a valid payload");
-    const response = await shortenSaveUrl(payload);
+import { ApiError } from "../utils/ApiError.js";
 
 
-    if (!response) res.status(400).send({
-      status: "Failed",
-      message: `Some error occurred ${response}`
-    })
+// CREATE
+export const shortenUrController = async (
+  req: Request,
+  res: Response<ApiResponse<urlInterface>>
+) => {
 
-    res.status(201).send({
-      status: "Success",
-      message: "Record Created successfully",
-      data: response
-    })
-  } catch (error) {
-    // throw error;
-    res.status(400).json({
-      status: "Failed",
-      message: `Some error occurred ${error}`
-    })
+  if (!req.body) {
+    throw new ApiError(400, "Payload cannot be empty");
   }
-}
 
-export const getUrlByIdCont = async (req: Request<{id: string }>, res: Response<ApiResponse<urlInterface>>) => {
-  try {
-    const _id = req.params.id;
+  const response = await shortenSaveUrl(req.body);
 
-    if (!_id) throw new Error("Please provide a valid id");
+  res.status(201).json({
+    status: "Success",
+    message: "Record created successfully",
+    data: response
+  });
+};
 
-    const response = await getUrlById(_id);
-    if (response) return res.status(200).send({
-      status: "Success",
-      message: "Record Retrieved successfully",
-      data: response
-    });
-    return res.status(404).send({
-      status: "Failed",
-      message: "Not found",
-    });
-  } catch (error: any) {
-    return res.status(error.statusCode || 500).json({
-      status: "Failed",
-      message: error.message || "Internal Server Error"
-    }); 
+
+// GET BY ID
+export const getUrlByIdCont = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<urlInterface>>
+) => {
+
+  const id = Number(req.params.id);
+
+  if (Number.isNaN(id)) {
+    throw new ApiError(400, "Invalid id");
   }
-}
 
-export const getUrls = async (req: Request, res: Response<ApiResponse<urlInterface [] | null>>) => {
-  try {
-    const response = await getAllUrl();
+  const response = await getUrlById(id);
 
-    if (response) {
-      return res.status(200).send({
-        status: "Success",
-        message: response.length > 0 ? "Records retrieved successfully" : "No record found",
-        data: response
-      })
-    }
-    return res.status(400).send({
-      status: "Failed",
-      message: "No Data found",
-      data: null
-    })
-  } catch (error) {
-    res.status(400).send({
-      status: "Failed",
-      message: `An Error occurred, ${error}`
-    })
+  res.status(200).json({
+    status: "Success",
+    message: "Record retrieved successfully",
+    data: response
+  });
+};
+
+
+// GET ALL
+export const getUrls = async (
+  req: Request,
+  res: Response<ApiResponse<urlInterface[]>>
+) => {
+
+  const response = await getAllUrl();
+
+  res.status(200).json({
+    status: "Success",
+    message: response.length > 0
+      ? "Records retrieved successfully"
+      : "No records found",
+    data: response
+  });
+};
+
+
+// GET BY SHORT ID
+export const getUrlRecordByShortId = async (
+  req: Request<{ shortId: string }>,
+  res: Response<ApiResponse<urlInterface>>
+) => {
+
+  const shortId = req.params.shortId;
+
+  if (!shortId) {
+    throw new ApiError(400, "ShortId is required");
   }
-}
 
-export const getUrlRecordByShortId = async (req: Request<{ shortId: string }>, res: Response<ApiResponse<urlInterface | null>>) => {
-  try {
-    const _shortId = req.params.shortId;
-    const _res = await getUrlByShortUrl(_shortId);
+  const response = await getUrlByShortUrl(shortId);
 
-    if (!_res) throw "Error"
-    
-    res.status(200).send({
-      status: "Success",
-      message: "Record Retrieved successfully",
-      data: _res
-    })
+  res.status(200).json({
+    status: "Success",
+    message: "Record retrieved successfully",
+    data: response
+  });
+};
 
-  } catch (error: any) {
-    res.status(error.statusCode || 500).send({
-      status: "Failed",
-      message: error.message || "Internal server error"
-      // errorMessage: error
-    })
+
+// UPDATE
+export const updateUrlRecord = async (
+  req: Request,
+  res: Response<ApiResponse<urlInterface>>
+) => {
+
+  const payload: updateUrlType = {
+    ...req.body,
+    id: Number(req.body.id)
+  };
+
+  if (Number.isNaN(payload.id)) {
+    throw new ApiError(400, "Invalid id");
   }
-}
 
-export const updateUrlRecord = async (req: Request, res: Response<ApiResponse<urlInterface>>) => {
-  try {
-    const payload: updateUrlType = req.body;
+  const response = await updateUrl(payload);
 
-    if (!payload) {
-      throw new Error("Payload cannot be null");
-    }
+  res.status(200).json({
+    status: "Success",
+    message: "Record updated successfully",
+    data: response
+  });
+};
 
-    const response = await updateUrl(payload);
 
-    return res.status(200).json({
-      status: "Success",
-      message: "Record Updated Successfully",
-      data: response
-    });
-
-  } catch (error: any) {
-    return res.status(400).send({
-      status: "Failed",
-      message: error.message || "Some errors occurred"
-    });
-  }
-}
-
+// DELETE
 export const deleteUrlByIdCont = async (
   req: Request<{ id: string }>,
   res: Response
 ) => {
-  try {
 
-    const _id = Number(req.params.id);
+  const id = Number(req.params.id);
 
-    if (Number.isNaN(_id)) {
-      return res.status(400).send({
-        status: "Failed",
-        message: "Invalid id",
-      });
-    }
-
-    await deleteUrlById(_id);
-
-    return res.status(200).send({
-      status: "Success",
-      message: "Record deleted successfully",
-    });
-
-  } catch (error: any) {
-    return res.status(400).send({
-      status: "Failed",
-      message: error.message || "Some error occurred",
-    });
+  if (Number.isNaN(id)) {
+    throw new ApiError(400, "Invalid id");
   }
+
+  await deleteUrlById(id);
+
+  res.status(200).json({
+    status: "Success",
+    message: "Record deleted successfully"
+  });
 };
 
+
+// GET BY CLICK COUNT
 export const getRecordsCountsGTE = async (
-  req: Request<{ count: number }>, 
-  res: Response<ApiResponse<urlInterface[] | null>>
+  req: Request<{ count: string }>,
+  res: Response<ApiResponse<urlInterface[]>>
 ) => {
-  try {
-    const { count } = req.params;
 
-    if (Number.isNaN(count)) throw new Error("Invalid Parameter, Count must be a valid integer");
-    const _count = Number(count);
+  const count = Number(req.params.count);
 
-    const result = await getByClickCount(_count);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Data retrieved successfully",
-      data: result,
-    })
-  } catch (error) {
-    return res.status(400).json({
-      status: "Failed",
-      message: `An error occurred ${error}`
-    });
+  if (Number.isNaN(count)) {
+    throw new ApiError(400, "Count must be a valid number");
   }
-}
 
-export const clickUrl = async (req: Request<{ id: string }>, res: Response<ApiResponse<urlInterface | null>>) => {
-  try {
-    const id = req.params.id;
-    // if (!id) throw new Error("Invalid id");
-    if (!id) {
-      return res.status(400).json({
-        status: "Failed",
-        message: "Invalid id",
-        data: null
-      });
-    }
-    const result = await performClickUrl(id);
+  const result = await getByClickCount(count);
 
-    res.status(200).json({
-      status: "Success",
-      message: "Click Successful",
-      data: result
-    })
+  res.status(200).json({
+    status: "Success",
+    message: "Data retrieved successfully",
+    data: result
+  });
+};
 
-  } catch (error: any) {
-    res.status(400).send({
-      status: "Failed",
-      message: "An error occurred",
-      errorMessage: error
-    })
-  }
-}
 
-export const clickUrlCustomTimes = async (req: Request<{}, {}, customClick>, 
-  res: Response<ApiResponse<urlInterface | null>>
+// CLICK (INCREMENT 1)
+export const clickUrl = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<urlInterface>>
 ) => {
-  try {
-    const payload = req.body;
 
-    console.log(payload)
+  const id = Number(req.params.id);
 
-    const result = await performCustomClick(payload);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Click Successful",
-      data: result
-    });
-
-  } catch (error: any) {
-    res.status(400).send({
-      status: "Failed",
-      message: "An error occurred",
-      errorMessage: error.message
-    })
+  if (Number.isNaN(id)) {
+    throw new ApiError(400, "Invalid id");
   }
-}
+
+  const result = await performClickUrl(id);
+
+  res.status(200).json({
+    status: "Success",
+    message: "Click successful",
+    data: result
+  });
+};
+
+
+// CLICK (CUSTOM)
+export const clickUrlCustomTimes = async (
+  req: Request<{}, {}, customClick>,
+  res: Response<ApiResponse<urlInterface>>
+) => {
+
+  const result = await performCustomClick(req.body);
+
+  res.status(200).json({
+    status: "Success",
+    message: "Click successful",
+    data: result
+  });
+};

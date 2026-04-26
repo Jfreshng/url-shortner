@@ -1,208 +1,172 @@
 import { prismaInstance } from "../../prisma/prismaClient.js";
-import { createUrl, updateUrlType, updateUrlByShortIdType, customClick } from "../../types/UrlTypes.js";
+import {
+  createUrl,
+  updateUrlType,
+  updateUrlByShortIdType,
+  customClick
+} from "../../types/UrlTypes.js";
 import { nanoid } from "nanoid";
-import { Prisma } from "@prisma/client";
+import { ApiError } from "../utils/ApiError.js";
 
-// create a new url link
+
+// CREATE
 export const shortenSaveUrl = async (payload: createUrl) => {
-  // create url simply creates a new record and returns the shortened url
-  try {
-    if (!payload) throw new Error("Payload cannot be null or empty");
 
-    const _payload = {
+  if (!payload) {
+    throw new ApiError(400, "Payload cannot be null or empty");
+  }
+
+  const response = await prismaInstance.shortUrl.create({
+    data: {
       ...payload,
-      shortId: await nanoid(8).toString(),
+      shortId: nanoid(8)
     }
+  });
 
-    // do validation if any is required
-    const response = await prismaInstance.shortUrl.create({
-      data: _payload
-    })
-
-    if (response) return response
-
-  } catch (error) {
-    throw error
-  }
-}
-
-// get all
-export const getAllUrl = async () => {
-  try {
-    const urls = await prismaInstance.shortUrl.findMany();
-    return urls
-  } catch (error) {
-    throw error;
-  }
-}
-
-// get one
-export const getUrlById = async (id: string) => {
-  try {
-    if (!id) {
-      throw new Error("id cannot be null");
-    }
-    const _id = Number(id);
-    if (Number.isNaN(_id)) throw `Invalid Id ${id}`;
-    const url = await prismaInstance.shortUrl.findUniqueOrThrow({
-      where: {id: _id}
-    })
-    return url;
-  } catch (error) {
-    // throw error
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "p2025"){
-        const err: any = new Error("Url record not found");
-        err.statusCode = 404;
-        throw err;
-      }
-    }
-  }
-}
-
-// delete service
-export const deleteUrlById = async (id: number) => {
-  try {
-    if (Number.isNaN(id)) {
-      throw new Error("Invalid id");
-    }
-
-    const deletedRecord = await prismaInstance.shortUrl.delete({
-      where: { id }
-    });
-
-    return deletedRecord;
-
-  } catch (error) {
-    throw error;
-  }
+  return response;
 };
 
+
+// GET ALL
+export const getAllUrl = async () => {
+  return prismaInstance.shortUrl.findMany();
+};
+
+
+// GET BY ID
+export const getUrlById = async (id: number) => {
+
+  if (Number.isNaN(id)) {
+    throw new ApiError(400, "Invalid id");
+  }
+
+  return prismaInstance.shortUrl.findUniqueOrThrow({
+    where: { id }
+  });
+};
+
+
+// DELETE
+export const deleteUrlById = async (id: number) => {
+
+  if (Number.isNaN(id)) {
+    throw new ApiError(400, "Invalid id");
+  }
+
+  return prismaInstance.shortUrl.delete({
+    where: { id }
+  });
+};
+
+
+// UPDATE BY ID
 export const updateUrl = async (payload: updateUrlType) => {
 
   if (!payload) {
-    throw new Error("Payload cannot be null or empty");
+    throw new ApiError(400, "Payload cannot be null or empty");
   }
 
-  const _id = Number(payload.id);
-
-  if (Number.isNaN(_id)) {
-    throw new Error("Invalid url id");
+  if (Number.isNaN(payload.id)) {
+    throw new ApiError(400, "Invalid url id");
   }
 
-  const response = await prismaInstance.shortUrl.update({
+  return prismaInstance.shortUrl.update({
+    where: { id: payload.id },
+    data: {
+      originalUrl: payload.originalUrl
+    }
+  });
+};
+
+
+// UPDATE BY SHORT ID
+export const updateByShortUrlId = async (payload: updateUrlByShortIdType) => {
+
+  if (!payload?.shortId) {
+    throw new ApiError(400, "shortId is required");
+  }
+
+  return prismaInstance.shortUrl.update({
     where: {
-      id: _id
+      shortId: payload.shortId
     },
     data: {
       originalUrl: payload.originalUrl
     }
   });
+};
+
+
+// GET BY CLICK COUNT
+export const getByClickCount = async (count: number) => {
+
+  if (Number.isNaN(count)) {
+    throw new ApiError(400, "Invalid count");
+  }
+
+  return prismaInstance.shortUrl.findMany({
+    where: {
+      clickCount: {
+        gte: count
+      }
+    }
+  });
+};
+
+
+// GET BY SHORT ID
+export const getUrlByShortUrl = async (shortId: string) => {
+
+  if (!shortId) {
+    throw new ApiError(400, "ShortUrlId cannot be null");
+  }
+
+  const response = await prismaInstance.shortUrl.findFirst({
+    where: { shortId }
+  });
+
+  if (!response) {
+    throw new ApiError(404, `Record with shortId '${shortId}' not found`);
+  }
 
   return response;
-}
+};
 
-export const updateByShortUrlId = async (payload: updateUrlByShortIdType) => {
-  try {
-    const { shortId } = payload
-    const updateResult = await prismaInstance.shortUrl.update({
-      where: {
-        shortId
-      },
-      data: {
-        originalUrl: payload.originalUrl
-      }
-    })
-  } catch (error) {
-    throw new Error(`An error occurred ${error}`);
+
+// INCREMENT CLICK (1)
+export const performClickUrl = async (id: number) => {
+
+  if (Number.isNaN(id)) {
+    throw new ApiError(400, "Invalid id");
   }
-}
 
-// get by some other condition 
-// get by click count -> returns records where clickCount is greater than or equal to the count passed as argument
-export const getByClickCount = async (count: number) => {
-  try {
-    const result = await prismaInstance.shortUrl.findMany({
-      where: {
-        clickCount: {
-          gte: count
-        }
+  return prismaInstance.shortUrl.update({
+    where: { id },
+    data: {
+      clickCount: {
+        increment: 1
       }
-    })
-    return result
-  } catch (error) {
-    throw new Error(`An error occurred ${error}`);
-  }
-}
-
-// get by shortUrlId
-export const getUrlByShortUrl = async (shortId: string) => {
-  try {
-    if (!shortId) throw new Error("ShortUrlId cannot be null");
-
-    const response = await prismaInstance.shortUrl.findFirst({
-      where: {
-        shortId
-      }
-    })
-
-    // if (!response) throw new Error(`Record with shortId '${shortId}' not found`)
-
-    if (!response) {
-      const error: any = new Error(`Record with shortId '${shortId}' not found`)
-      error.statusCode = 404;
-      throw error;
     }
-    
-    return response;
-  } catch (error) {
-    throw error;
-  }
-}
+  });
+};
 
-export const performClickUrl = async (id: string) => {
-  try {
-    const _id = Number(id);
 
-    if (Number.isNaN(_id)) throw new Error(`Invalid Id ${id}`);
-
-    const clickResult = await prismaInstance.shortUrl.update({
-      where: {
-        id: _id
-      },
-      data: {
-        clickCount: {
-          increment: 1
-        }
-      }
-    })
-
-    return clickResult;
-
-  } catch (error) {
-    throw new Error(`An Error occurred ${error}`)
-  }
-}
-
+// INCREMENT CLICK (CUSTOM)
 export const performCustomClick = async (payload: customClick) => {
-  try {
-    const { id, clicks } = payload;
-    const _id = Number(id)
-    const _clicks = Number(clicks)
-    if (Number.isNaN(_id) || Number.isNaN(_clicks)) throw new Error("Invalid attribute in payload");
-    const result = await prismaInstance.shortUrl.update({
-      where: {
-        id: _id
-      },
-      data: {
-        clickCount: {
-          increment: _clicks
-        }
-      }
-    });
 
-    return result;
-  } catch (error) {
-    throw new Error(`An Error occurred ${error}`);
+  const id = Number(payload.id);
+  const clicks = Number(payload.clicks);
+
+  if (Number.isNaN(id) || Number.isNaN(clicks)) {
+    throw new ApiError(400, "Invalid attributes in payload");
   }
-}
+
+  return prismaInstance.shortUrl.update({
+    where: { id },
+    data: {
+      clickCount: {
+        increment: clicks
+      }
+    }
+  });
+};
