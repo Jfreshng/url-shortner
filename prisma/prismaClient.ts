@@ -1,62 +1,16 @@
-// const { PrismaClient } = require("@prisma/client")
-// const { PrismaMssql } = require("@prisma/adapter-mssql")
-
-// const adapter = new PrismaMssql({
-//   server: "localhost",
-//   port: 1433,
-//   database: "UrlShortenerDB",
-//   authentication: {
-//     type: "default",
-//     options: {
-//       userName: "testUser",
-//       password: "StrongPassword123!"
-//     }
-//   },
-//   options: {
-//     trustServerCertificate: true,
-//   },
-// })
-
-// const prisma = new PrismaClient({ adapter })
-
-// module.exports = prisma
-
-// import { PrismaClient } from "@prisma/client";
-// import { PrismaMssql } from "@prisma/adapter-mssql";
-
-// const adapter = new PrismaMssql({
-//   server: "localhost",
-//   port: 1433,
-//   database: "UrlShortenerDB",
-//   authentication: {
-//     type: "default",
-//     options: {
-//       userName: "testUser",
-//       password: "StrongPassword123!"
-//     }
-//   },
-//   options: {
-//     trustServerCertificate: true
-//   }
-// });
-
-// const prismaInstance = new PrismaClient({ adapter });
-
-// export default prismaInstance;
-
-
 import { PrismaMssql } from "@prisma/adapter-mssql";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { appConfig } from "../src/config/config.js";
 
 const adapter = new PrismaMssql({
-  server: "localhost",
-  port: 1433,
-  database: "UrlShortenerDB",
+  server: appConfig.server_name,
+  port: Number(appConfig.db_port),
+  database: appConfig.db_name,
   authentication: {
     type: "default",
     options: {
-      userName: "anotherUser",         // your SQL Server username
-      password: "Password123" // your SQL Server password
+      userName: appConfig.db_username,         // your SQL Server username
+      password: appConfig.db_password // your SQL Server password
     }
   },
   options: {
