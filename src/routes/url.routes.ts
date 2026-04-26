@@ -301,7 +301,7 @@ urlRouter.put('/click/:id', clickUrl);
 /**
  * @openapi
  * /api/url/click/custom:
- *   put:
+ *   patch:
  *     summary: Increment click count by custom number of times
  *     tags:
  *       - URL

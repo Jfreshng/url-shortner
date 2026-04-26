@@ -166,6 +166,15 @@ export const performClickUrl = async (id: string) => {
 
     if (Number.isNaN(_id)) throw new Error(`Invalid Id ${id}`);
 
+    // check if record exists
+    const recordExists = await prismaInstance.shortUrl.findUnique({
+      where: {
+        id: _id
+      }
+    });
+
+    if (!recordExists) throw new Error("Record not found");
+
     const clickResult = await prismaInstance.shortUrl.update({
       where: {
         id: _id
@@ -190,6 +199,16 @@ export const performCustomClick = async (payload: customClick) => {
     const _id = Number(id)
     const _clicks = Number(clicks)
     if (Number.isNaN(_id) || Number.isNaN(_clicks)) throw new Error("Invalid attribute in payload");
+    
+    // check if record exists
+    const recordExists = await prismaInstance.shortUrl.findUnique({
+      where: {
+        id: _id
+      }
+    });
+
+    if (!recordExists) throw new Error("Record not found");
+
     const result = await prismaInstance.shortUrl.update({
       where: {
         id: _id
